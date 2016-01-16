@@ -10,4 +10,5 @@ func init() {
 	http.HandleFunc("/timer", h.Timer)
 	http.HandleFunc("/start", h.Start)
 	http.HandleFunc("/stop", h.Stop)
+	http.HandleFunc("/task/reset", h.Reset)
 }

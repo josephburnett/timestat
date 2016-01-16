@@ -62,6 +62,24 @@ func Stop(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "Timer successfully stopped.")
 }
 
+// Reset collection running timer stats for a user and deletes the timer.
+func Reset(w http.ResponseWriter, r *http.Request) {
+	owner := r.FormValue("owner")
+	if owner == "" {
+		panic("Unknown owner.")
+	}
+	ctx := appengine.NewContext(r)
+	timer, err := datastore.LoadRunningTimer(ctx, owner)
+	if err != nil {
+		panic("Unable to load running timer for " + owner)
+	}
+	// TODO collect stats on timer
+	err = datastore.DeleteRunningTimer(ctx, timer)
+	if err != nil {
+		panic("Unable to delete running timer for " + owner)
+	}
+}
+
 func internalError(w http.ResponseWriter, err error) bool {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

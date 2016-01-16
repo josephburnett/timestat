@@ -1,10 +1,12 @@
 package datastore
 
 import (
+	"net/url"
 	"time"
 
 	"appengine"
 	"appengine/datastore"
+	"appengine/taskqueue"
 
 	m "timestat/model"
 )
@@ -47,8 +49,23 @@ func StopRunningTimer(c appengine.Context, timer *m.RunningTimer) error {
 	timer.State = m.StoppedState
 	err := datastore.RunInTransaction(c, func(c appengine.Context) error {
 		key := datastore.NewKey(c, m.RunningTimerKind, timer.Owner, 0, nil)
-		// TODO: persist reset task
-		// _, err := datastore.Put(c, key, timer)
+		_, err := datastore.Put(c, key, timer)
+		if err != nil {
+			return err
+		}
+		t := taskqueue.NewPOSTTask("/task/reset", url.Values{
+			"owner": []string{timer.Owner},
+		})
+		_, err = taskqueue.Add(c, t, "")
+		return err
+	}, nil)
+	return err
+}
+
+// DeleteRunningTimer deletes a running timer unconditionally.
+func DeleteRunningTimer(c appengine.Context, timer *m.RunningTimer) error {
+	err := datastore.RunInTransaction(c, func(c appengine.Context) error {
+		key := datastore.NewKey(c, m.RunningTimerKind, timer.Owner, 0, nil)
 		err := datastore.Delete(c, key)
 		return err
 	}, nil)

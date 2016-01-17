@@ -27,7 +27,7 @@ func NewTimer(owner, name string) *m.Timer {
 
 // LoadTimer loads an existing Timer from Datastore.
 func LoadTimer(c appengine.Context, owner, id string) (*m.Timer, error) {
-	key := datastore.NewKey(c, m.TimerKind, compositeTimerKey(owner, id), 0, nil)
+	key := datastore.NewKey(c, Timer, compositeTimerKey(owner, id), 0, nil)
 	timer := &m.Timer{}
 	err := datastore.Get(c, key, timer)
 	if err == datastore.ErrNoSuchEntity {
@@ -43,7 +43,7 @@ func LoadTimer(c appengine.Context, owner, id string) (*m.Timer, error) {
 func SaveTimer(c appengine.Context, timer *m.Timer) error {
 	err := datastore.RunInTransaction(c, func(c appengine.Context) error {
 		timerKey := compositeTimerKey(timer.Owner, timer.ID)
-		key := datastore.NewKey(c, m.TimerKind, timerKey, 0, nil)
+		key := datastore.NewKey(c, Timer, timerKey, 0, nil)
 		_, err := datastore.Put(c, key, timer)
 		return err
 	}, nil)

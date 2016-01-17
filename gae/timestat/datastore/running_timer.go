@@ -19,7 +19,7 @@ func NewRunningTimer(c appengine.Context, owner string) (*m.RunningTimer, error)
 		Start: time.Now(),
 	}
 	err := datastore.RunInTransaction(c, func(c appengine.Context) error {
-		key := datastore.NewKey(c, m.RunningTimerKind, timer.Owner, 0, nil)
+		key := datastore.NewKey(c, RunningTimer, timer.Owner, 0, nil)
 		_, err := datastore.Put(c, key, timer)
 		return err
 	}, nil)
@@ -31,7 +31,7 @@ func NewRunningTimer(c appengine.Context, owner string) (*m.RunningTimer, error)
 
 // LoadRunningTimer loads the current running timer for a user if one exists.
 func LoadRunningTimer(c appengine.Context, owner string) (*m.RunningTimer, error) {
-	key := datastore.NewKey(c, m.RunningTimerKind, owner, 0, nil)
+	key := datastore.NewKey(c, RunningTimer, owner, 0, nil)
 	timer := &m.RunningTimer{}
 	err := datastore.Get(c, key, timer)
 	if err == datastore.ErrNoSuchEntity {
@@ -48,7 +48,7 @@ func LoadRunningTimer(c appengine.Context, owner string) (*m.RunningTimer, error
 func StopRunningTimer(c appengine.Context, timer *m.RunningTimer) error {
 	timer.State = m.StoppedState
 	err := datastore.RunInTransaction(c, func(c appengine.Context) error {
-		key := datastore.NewKey(c, m.RunningTimerKind, timer.Owner, 0, nil)
+		key := datastore.NewKey(c, RunningTimer, timer.Owner, 0, nil)
 		_, err := datastore.Put(c, key, timer)
 		if err != nil {
 			return err
@@ -65,7 +65,7 @@ func StopRunningTimer(c appengine.Context, timer *m.RunningTimer) error {
 // DeleteRunningTimer deletes a running timer unconditionally.
 func DeleteRunningTimer(c appengine.Context, timer *m.RunningTimer) error {
 	err := datastore.RunInTransaction(c, func(c appengine.Context) error {
-		key := datastore.NewKey(c, m.RunningTimerKind, timer.Owner, 0, nil)
+		key := datastore.NewKey(c, RunningTimer, timer.Owner, 0, nil)
 		err := datastore.Delete(c, key)
 		return err
 	}, nil)

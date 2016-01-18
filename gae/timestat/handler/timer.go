@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"timestat/datastore"
+	m "timestat/model"
 
 	"appengine"
 	"appengine/user"
@@ -24,4 +25,7 @@ func Timer(w http.ResponseWriter, r *http.Request) {
 	}
 	bytes, _ := json.Marshal(timer)
 	fmt.Fprint(w, inHTMLBody(messageHTML("Running timer:")+string(bytes)+menu))
+	if timer.State == m.AnonRunning || timer.State == m.AnonStopped {
+		fmt.Fprint(w, name+iden)
+	}
 }

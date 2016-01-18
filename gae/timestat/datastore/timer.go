@@ -32,7 +32,8 @@ func getTimerID(c appengine.Context, owner, name string) (string, error) {
 	return "", errors.New("There are already too many of those. Name it something else.")
 }
 
-// NewTimer creates a new Timer entity.
+// NewTimer creates a new Timer entity.  New timers are associated with the
+// current running timer.
 func NewTimer(c appengine.Context, owner, name string) (*m.Timer, error) {
 	timer := &m.Timer{
 		Owner:    owner,
@@ -40,6 +41,10 @@ func NewTimer(c appengine.Context, owner, name string) (*m.Timer, error) {
 		LastUsed: time.Now(),
 	}
 	err := datastore.RunInTransaction(c, func(c appengine.Context) error {
+		running, err := LoadRunningTimer(c, owner)
+		if running.State != m.AnonRunning && running.State != m.AnonStopped {
+			return errors.New("There is no currently running timer.")
+		}
 		id, err := getTimerID(c, owner, name)
 		if err != nil {
 			return err
@@ -48,6 +53,24 @@ func NewTimer(c appengine.Context, owner, name string) (*m.Timer, error) {
 		timerKey := compositeTimerKey(timer.Owner, timer.ID)
 		key := datastore.NewKey(c, Timer, timerKey, 0, nil)
 		_, err = datastore.Put(c, key, timer)
+		if err != nil {
+			return err
+		}
+		running.TimerID = id
+		// TODO: State transitions should not be in the data layer.
+		//       But I need to transactionally create a new timer,
+		//       update the running timer and transition its state.
+		if running.State == m.AnonRunning {
+			running.State = m.NamedRunning
+		}
+		if running.State == m.AnonStopped {
+			running.State = m.NamedStopped
+			err = resetTimer(c, owner)
+			if err != nil {
+				return err
+			}
+		}
+		err = SaveRunningTimer(c, running)
 		return err
 	}, nil)
 	if err != nil {

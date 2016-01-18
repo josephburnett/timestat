@@ -19,6 +19,8 @@ type State string
 
 // Valid States.
 const (
-	RunningState State = "running" // initial state
-	StoppedState       = "stopped" // ready to be reset
+	AnonRunning  State = "anon-running"  // initial state
+	AnonStopped        = "anon-stopped"  // stopped but not associated with a timer id
+	NamedRunning       = "named-running" // running and associated with a timer id
+	NamedStopped       = "named-stopped" // ready to be reset
 )

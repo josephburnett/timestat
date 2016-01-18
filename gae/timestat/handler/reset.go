@@ -35,6 +35,9 @@ func Reset(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateAllDimensions(ctx appengine.Context, timer *m.RunningTimer, minute int32) error {
+	if timer.TimerID == "" {
+		panic("TimerID is empty.")
+	}
 	for _, dim := range m.AllDimensions {
 		dist, err := loadOrCreateDistribution(ctx, timer, dim)
 		if err != nil {
@@ -54,7 +57,7 @@ func loadOrCreateDistribution(ctx appengine.Context, timer *m.RunningTimer, dim 
 	if err != nil {
 		return nil, err
 	}
-	dist, err := datastore.LoadDistribution(ctx, timer.Owner, dim, id)
+	dist, err := datastore.LoadDistribution(ctx, timer.Owner, timer.TimerID, dim, id)
 	if err != nil {
 		return nil, err
 	}

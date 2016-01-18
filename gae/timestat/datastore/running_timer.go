@@ -18,7 +18,7 @@ import (
 func NewRunningTimer(c appengine.Context, owner string) (*m.RunningTimer, error) {
 	timer := &m.RunningTimer{
 		Owner: owner,
-		State: m.RunningState,
+		State: m.AnonRunning,
 		Start: time.Now(),
 	}
 	err := datastore.RunInTransaction(c, func(c appengine.Context) error {
@@ -46,10 +46,9 @@ func LoadRunningTimer(c appengine.Context, owner string) (*m.RunningTimer, error
 	return timer, nil
 }
 
-// StopRunningTimer sets the running timer into a stopped state and transaction-
-// ally inserts a task to collect statistics and delete the timer.
-func StopRunningTimer(c appengine.Context, timer *m.RunningTimer) error {
-	timer.State = m.StoppedState
+// SaveRunningTimer persists the running timer.  If the timer is in a
+// NamedStopped state it persists a task to reset the timer.
+func SaveRunningTimer(c appengine.Context, timer *m.RunningTimer) error {
 	err := datastore.RunInTransaction(c, func(c appengine.Context) error {
 		timer.End = time.Now()
 		key := datastore.NewKey(c, RunningTimer, timer.Owner, 0, nil)
@@ -57,12 +56,20 @@ func StopRunningTimer(c appengine.Context, timer *m.RunningTimer) error {
 		if err != nil {
 			return err
 		}
-		t := taskqueue.NewPOSTTask("/task/reset", url.Values{
-			"owner": []string{timer.Owner},
-		})
-		_, err = taskqueue.Add(c, t, "")
+		if timer.State == m.NamedStopped {
+			err = resetTimer(c, timer.Owner)
+		}
 		return err
 	}, nil)
+	return err
+}
+
+// Insert a task to reset the running timer.  Should be done in a transaction.
+func resetTimer(c appengine.Context, owner string) error {
+	t := taskqueue.NewPOSTTask("/task/reset", url.Values{
+		"owner": []string{owner},
+	})
+	_, err := taskqueue.Add(c, t, "")
 	return err
 }
 

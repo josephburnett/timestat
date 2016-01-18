@@ -22,8 +22,8 @@ func NewDistribution(owner string, dimension m.Dimension, id string, timerID str
 }
 
 // LoadDistribution loads a distribution from Datastore if it exists
-func LoadDistribution(c appengine.Context, owner string, dimension m.Dimension, id string) (*m.Distribution, error) {
-	key := datastore.NewKey(c, string(Distribution), compositeDistributionKey(owner, string(dimension), id), 0, nil)
+func LoadDistribution(c appengine.Context, owner string, timerID string, dimension m.Dimension, id string) (*m.Distribution, error) {
+	key := datastore.NewKey(c, string(Distribution), compositeDistributionKey(owner, timerID, string(dimension), id), 0, nil)
 	dist := &m.Distribution{}
 	err := datastore.Get(c, key, dist)
 	if err == datastore.ErrNoSuchEntity {
@@ -38,7 +38,7 @@ func LoadDistribution(c appengine.Context, owner string, dimension m.Dimension, 
 // SaveDistribution saves a Distribution to Datastore.
 func SaveDistribution(c appengine.Context, dist *m.Distribution) error {
 	err := datastore.RunInTransaction(c, func(c appengine.Context) error {
-		distKey := compositeDistributionKey(dist.Owner, string(dist.Dimension), dist.ID)
+		distKey := compositeDistributionKey(dist.Owner, dist.TimerID, string(dist.Dimension), dist.ID)
 		key := datastore.NewKey(c, string(Distribution), distKey, 0, nil)
 		_, err := datastore.Put(c, key, dist)
 		return err
@@ -46,6 +46,6 @@ func SaveDistribution(c appengine.Context, dist *m.Distribution) error {
 	return err
 }
 
-func compositeDistributionKey(owner, dimension, id string) string {
-	return owner + "$" + dimension + "$" + id
+func compositeDistributionKey(owner, timerID, dimension, id string) string {
+	return owner + "$" + timerID + "$" + dimension + "$" + id
 }

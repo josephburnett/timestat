@@ -9,3 +9,7 @@ func internalError(w http.ResponseWriter, err error) bool {
 	}
 	return false
 }
+
+func notFound(w http.ResponseWriter) {
+	http.Error(w, "404 Sorry there is nothing here.", http.StatusNotFound)
+}

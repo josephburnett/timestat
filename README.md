@@ -24,10 +24,6 @@ Keep stats on your time.
 4. Reaper task updates dimensions 1-8 if guid doesn't match (idempotence)
 5. Deletes timer (reset)
 
-Each dimension is a Bayesian probability distribution over the 1,400 possible
-outcomes.  New evidence is introduced with [Bayesian Inference](https://en.wikipedia.org/wiki/Bayesian_inference).
-Inspired by [DataBozo](https://en.wikipedia.org/wiki/Bayesian_inference).
-
 Each dimension also records the number of contributing samples, average, median and the standard deviation.  Dimensions 2-5 accumulate history (one Datastore entry per day, etc...)  Dimensions 1 and 6-8 are singletons and accumulate over the lifetime of the timer.
 
 ## Limitations

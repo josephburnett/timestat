@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"timestat/datastore"
@@ -35,8 +36,5 @@ func History(w http.ResponseWriter, r *http.Request) {
 	if internalError(w, err) {
 		return
 	}
-	_, err = w.Write(bytes)
-	if internalError(w, err) {
-		return
-	}
+	fmt.Fprint(w, inHTMLBody(messageHTML("History: "+path)+string(bytes)+menu))
 }

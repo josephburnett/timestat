@@ -23,8 +23,5 @@ func Timer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	bytes, _ := json.Marshal(timer)
-	_, err = w.Write(bytes)
-	if internalError(w, err) {
-		return
-	}
+	fmt.Fprint(w, inHTMLBody(messageHTML("Running timer:")+string(bytes)+menu))
 }

@@ -7,6 +7,7 @@ import (
 )
 
 func init() {
+	http.HandleFunc("/", h.Root)
 	http.HandleFunc("/timer", h.Timer)
 	http.HandleFunc("/start", h.Start)
 	http.HandleFunc("/stop", h.Stop)

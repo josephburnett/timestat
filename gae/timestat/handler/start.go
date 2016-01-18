@@ -25,5 +25,5 @@ func Start(w http.ResponseWriter, r *http.Request) {
 	if internalError(w, err) {
 		return
 	}
-	fmt.Fprint(w, "Successfully started a timer.")
+	fmt.Fprint(w, inHTMLBody(messageHTML("Successfully started a timer.")+menu))
 }

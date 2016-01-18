@@ -33,5 +33,5 @@ func Stop(w http.ResponseWriter, r *http.Request) {
 	if internalError(w, err) {
 		return
 	}
-	fmt.Fprint(w, "Timer successfully stopped.")
+	fmt.Fprint(w, inHTMLBody(messageHTML("Timer successfully stopped.")+menu))
 }

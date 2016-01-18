@@ -47,5 +47,5 @@ func Name(w http.ResponseWriter, r *http.Request) {
 	if internalError(w, err) {
 		return
 	}
-	fmt.Fprint(w, "New timer created with id: "+timer.ID)
+	fmt.Fprint(w, inHTMLBody(messageHTML("New timer created with id: "+timer.ID)+menu))
 }

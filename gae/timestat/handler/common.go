@@ -11,5 +11,5 @@ func internalError(w http.ResponseWriter, err error) bool {
 }
 
 func userError(w http.ResponseWriter, err string) {
-	//http.Error(w, err, http.)
+	http.Error(w, err, http.StatusBadRequest)
 }

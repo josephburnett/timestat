@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"timestat/datastore"
@@ -21,5 +22,9 @@ func Timer(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "No running timer.")
 		return
 	}
-	fmt.Fprint(w, "Timer running since "+timer.Start.String())
+	bytes, _ := json.Marshal(timer)
+	_, err = w.Write(bytes)
+	if internalError(w, err) {
+		return
+	}
 }

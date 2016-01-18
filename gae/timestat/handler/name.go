@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"timestat/datastore"
+	m "timestat/model"
 
 	"appengine"
 	"appengine/user"
@@ -19,7 +20,30 @@ func Name(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Name is required.", http.StatusBadRequest)
 		return
 	}
+	running, err := datastore.LoadRunningTimer(ctx, u.String())
+	if internalError(w, err) {
+		return
+	}
+	if running == nil {
+		userError(w, "There is no current timer.")
+		return
+	}
+	if running.State == m.NamedRunning || running.State == m.NamedStopped {
+		userError(w, "The current timer is already named.")
+		return
+	}
 	timer, err := datastore.NewTimer(ctx, u.String(), name)
+	if internalError(w, err) {
+		return
+	}
+	running.TimerID = timer.ID
+	if running.State == m.AnonRunning {
+		running.State = m.NamedRunning
+	}
+	if running.State == m.AnonStopped {
+		running.State = m.NamedStopped
+	}
+	err = datastore.SaveRunningTimer(ctx, running)
 	if internalError(w, err) {
 		return
 	}

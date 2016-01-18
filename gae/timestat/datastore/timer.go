@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -15,11 +16,12 @@ import (
 // Linear probe for a timer id based on name.
 func getTimerID(c appengine.Context, owner, name string) (string, error) {
 	reg, _ := regexp.Compile("[^A-Za-z0-9]+")
-	id := reg.ReplaceAllString(name, "-")
-	id = strings.ToLower(id)
+	baseID := reg.ReplaceAllString(name, "-")
+	baseID = strings.ToLower(baseID)
 	for i := 1; i < 10; i++ {
+		id := baseID
 		if i > 1 {
-			id = id[:len(id)-1] + string(i)
+			id = fmt.Sprintf("%v-%v", baseID, i)
 		}
 		timer, err := LoadTimer(c, owner, id)
 		if err != nil {
@@ -35,42 +37,23 @@ func getTimerID(c appengine.Context, owner, name string) (string, error) {
 // NewTimer creates a new Timer entity.  New timers are associated with the
 // current running timer.
 func NewTimer(c appengine.Context, owner, name string) (*m.Timer, error) {
+	id, err := getTimerID(c, owner, name)
+	if err != nil {
+		return nil, err
+	}
 	timer := &m.Timer{
 		Owner:    owner,
 		Name:     name,
+		ID:       id,
 		LastUsed: time.Now(),
 	}
-	err := datastore.RunInTransaction(c, func(c appengine.Context) error {
-		running, err := LoadRunningTimer(c, owner)
-		if running.State != m.AnonRunning && running.State != m.AnonStopped {
-			return errors.New("There is no currently running timer.")
-		}
-		id, err := getTimerID(c, owner, name)
-		if err != nil {
-			return err
-		}
-		timer.ID = id
+	err = datastore.RunInTransaction(c, func(c appengine.Context) error {
 		timerKey := compositeTimerKey(timer.Owner, timer.ID)
 		key := datastore.NewKey(c, Timer, timerKey, 0, nil)
 		_, err = datastore.Put(c, key, timer)
 		if err != nil {
 			return err
 		}
-		running.TimerID = id
-		// TODO: State transitions should not be in the data layer.
-		//       But I need to transactionally create a new timer,
-		//       update the running timer and transition its state.
-		if running.State == m.AnonRunning {
-			running.State = m.NamedRunning
-		}
-		if running.State == m.AnonStopped {
-			running.State = m.NamedStopped
-			err = resetTimer(c, owner)
-			if err != nil {
-				return err
-			}
-		}
-		err = SaveRunningTimer(c, running)
 		return err
 	}, nil)
 	if err != nil {

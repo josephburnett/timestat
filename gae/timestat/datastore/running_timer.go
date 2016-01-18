@@ -1,7 +1,10 @@
 package datastore
 
 import (
+	"errors"
+	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"appengine"
@@ -48,6 +51,7 @@ func LoadRunningTimer(c appengine.Context, owner string) (*m.RunningTimer, error
 func StopRunningTimer(c appengine.Context, timer *m.RunningTimer) error {
 	timer.State = m.StoppedState
 	err := datastore.RunInTransaction(c, func(c appengine.Context) error {
+		timer.End = time.Now()
 		key := datastore.NewKey(c, RunningTimer, timer.Owner, 0, nil)
 		_, err := datastore.Put(c, key, timer)
 		if err != nil {
@@ -70,4 +74,44 @@ func DeleteRunningTimer(c appengine.Context, timer *m.RunningTimer) error {
 		return err
 	}, nil)
 	return err
+}
+
+// DimensionID extracts the id for the running timer for the given
+// dimension.  E.g. "monday" or "2015"
+func DimensionID(timer *m.RunningTimer, dim m.Dimension) (string, error) {
+	start := timer.Start
+	if start.IsZero() {
+		return "", errors.New("Timer is not started.")
+	}
+	format := fmt.Sprintf
+	lower := strings.ToLower
+	tenMinuteTime := func() string {
+		hour := start.Hour()
+		minute := start.Minute()
+		minute = minute / 10 * 10
+		return format("%02d-%02d", hour, minute)
+	}
+	dayOfTheWeek := func() string {
+		return lower(start.Weekday().String())
+	}
+	switch {
+	case dim == m.General:
+		return "general", nil
+	case dim == m.Day:
+		return start.Format("2006-01-02"), nil
+	case dim == m.Week:
+		year, week := start.ISOWeek()
+		return format("%v-W%02d", year, week), nil
+	case dim == m.Month:
+		return lower(start.Month().String()), nil
+	case dim == m.Year:
+		return format("%v", start.Year()), nil
+	case dim == m.DayOfTheWeek:
+		return dayOfTheWeek(), nil
+	case dim == m.TenMinuteTime:
+		return tenMinuteTime(), nil
+	case dim == m.TenMinuteTimeAndDayOfTheWeek:
+		return format("%v-%v", dayOfTheWeek(), tenMinuteTime()), nil
+	}
+	return "", errors.New("Unknown dimension.")
 }

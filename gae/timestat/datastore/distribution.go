@@ -1,4 +1,4 @@
-package datstore
+package datastore
 
 import (
 	"appengine"
@@ -10,25 +10,20 @@ import (
 // NewDistribution creates a new distribution in the owner's namespace with the
 // given dimension and id.  The new distribution is intialized with 1440 minute
 // probabilities and zero point count.
-func NewDistribution(owner string, dimension Dimension, id string, timerID string) *m.Distribution {
-	dist := &Distribution{
-		Owner:               owner,
-		Dimension:           dimension,
-		ID:                  id,
-		TimerId:             timerID,
-		MinuteProbabilities: make([]float64, 1440),
-		PointCount:          0,
+func NewDistribution(owner string, dimension m.Dimension, id string, timerID string) *m.Distribution {
+	return &m.Distribution{
+		Owner:        owner,
+		Dimension:    dimension,
+		ID:           id,
+		TimerID:      timerID,
+		MinuteCounts: make([]int32, 1440),
+		SampleCount:  0,
 	}
-	for i := range dist.MinuteProbabilities {
-		dist.MinuteProbabilities[i] = 1.0
-	}
-	// TODO: initialize the derived properties of Distribution and normalize
-	return dist
 }
 
 // LoadDistribution loads a distribution from Datastore if it exists
-func LoadDistribution(c appengine.Context, owner string, dimension Dimension, id string) {
-	key := datastore.NewKey(c, Distribution, compositeDistributionKey(owner, dimension, id), 0, nil)
+func LoadDistribution(c appengine.Context, owner string, dimension m.Dimension, id string) (*m.Distribution, error) {
+	key := datastore.NewKey(c, string(Distribution), compositeDistributionKey(owner, string(dimension), id), 0, nil)
 	dist := &m.Distribution{}
 	err := datastore.Get(c, key, dist)
 	if err == datastore.ErrNoSuchEntity {
@@ -43,8 +38,8 @@ func LoadDistribution(c appengine.Context, owner string, dimension Dimension, id
 // SaveDistribution saves a Distribution to Datastore.
 func SaveDistribution(c appengine.Context, dist *m.Distribution) error {
 	err := datastore.RunInTransaction(c, func(c appengine.Context) error {
-		distKey := compositeDistributionKey(owner, dimension, id)
-		key := datastore.NewKey(c, Distribution, distKey, 0, nil)
+		distKey := compositeDistributionKey(dist.Owner, string(dist.Dimension), dist.ID)
+		key := datastore.NewKey(c, string(Distribution), distKey, 0, nil)
 		_, err := datastore.Put(c, key, dist)
 		return err
 	}, nil)

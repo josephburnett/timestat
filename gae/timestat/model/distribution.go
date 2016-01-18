@@ -20,7 +20,7 @@ type Dimension string
 
 // Valid Dimensions
 const (
-	General                      Dimension = "general"
+	General                      Dimension = "all"
 	Day                                    = "day"
 	Week                                   = "week"
 	Month                                  = "month"

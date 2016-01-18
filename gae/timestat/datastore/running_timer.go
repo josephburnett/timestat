@@ -103,7 +103,7 @@ func DimensionID(timer *m.RunningTimer, dim m.Dimension) (string, error) {
 	}
 	switch {
 	case dim == m.General:
-		return "general", nil
+		return "time", nil
 	case dim == m.Day:
 		return start.Format("2006-01-02"), nil
 	case dim == m.Week:

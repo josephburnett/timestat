@@ -12,6 +12,7 @@ func init() {
 	http.HandleFunc("/start", h.Start)
 	http.HandleFunc("/stop", h.Stop)
 	http.HandleFunc("/name", h.Name)
+	http.HandleFunc("/identify", h.Identify)
 	http.HandleFunc("/history/", h.History)
 	http.HandleFunc("/task/reset", h.Reset)
 }

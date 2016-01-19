@@ -34,7 +34,7 @@ func init() {
 	name += "</form>"
 
 	iden += "<h3>Identify Timer</h3>"
-	iden += "<form action=\"/id\" method=\"post\">"
+	iden += "<form action=\"/identify\" method=\"post\">"
 	iden += "<input type=\"text\" name=\"id\">"
 	iden += "<input type=\"submit\" value=\"Identify\">"
 	iden += "</form>"

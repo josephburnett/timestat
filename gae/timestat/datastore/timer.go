@@ -87,6 +87,17 @@ func SaveTimer(c appengine.Context, timer *m.Timer) error {
 	return err
 }
 
+// ListTimers loads all timers in descending order of last use.
+func ListTimers(c appengine.Context, owner string) ([]*m.Timer, error) {
+	q := datastore.NewQuery(Timer).
+		Order("-LastUsed")
+	var timers []*m.Timer
+	if _, err := q.GetAll(c, &timers); err != nil {
+		return nil, err
+	}
+	return timers, nil
+}
+
 func compositeTimerKey(owner, id string) string {
 	return owner + "$" + id
 }

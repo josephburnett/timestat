@@ -21,7 +21,11 @@ func Stop(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if timer == nil {
-		fmt.Fprint(w, "There is not a timer running.")
+		fmt.Fprint(w, inHTMLBody(messageHTML("There is not a timer running.")+menu))
+		return
+	}
+	if timer.State == m.AnonStopped || timer.State == m.NamedStopped {
+		fmt.Fprint(w, inHTMLBody(messageHTML("Timer is already stopped.")+menu))
 		return
 	}
 	if timer.TimerID == "" {

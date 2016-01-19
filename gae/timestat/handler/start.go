@@ -18,7 +18,7 @@ func Start(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if timer != nil {
-		fmt.Fprint(w, "There is already a timer running.")
+		fmt.Fprint(w, inHTMLBody(messageHTML("There is already a timer running.")+menu))
 		return
 	}
 	timer, err = datastore.NewRunningTimer(ctx, u.String())

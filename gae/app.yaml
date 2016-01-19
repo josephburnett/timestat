@@ -1,4 +1,4 @@
-application: timestat
+application: time-stat
 version: 1
 runtime: go
 api_version: go1

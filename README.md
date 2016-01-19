@@ -1,9 +1,11 @@
 # Time Stat
 Keep stats on your time.
 
+Try it out on [App Engine](https://time-stat.appspot.com/).
+
 ## Dimensions
 
-1. in-general
+1. all time
 2. today
 3. this week
 4. this month

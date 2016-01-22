@@ -30,6 +30,7 @@ func init() {
 	menu += "<li><a href=\"/start\">start</a></li>"
 	menu += "<li><a href=\"/stop\">stop</a></li>"
 	menu += "<li><a href=\"/timer\">timer</a></li>"
+	menu += "<li><a href=\"/cancel\">cancel</a></li>"
 	menu += "</ul>"
 
 	name += "<h3>New Timer</h3>"

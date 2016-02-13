@@ -2,7 +2,7 @@
   (:require [om.core :refer [IRender root]]
             [om.dom :refer [circle svg text]]
             [cljs-time.coerce :refer [to-date to-long to-string]]
-            [cljs-time.core :refer [now]]))
+            [cljs-time.core :refer [now interval in-seconds]]))
 
 (enable-console-print!)
 
@@ -17,9 +17,9 @@
                          :TimerID ""}))
 
 (defn timer-view [data owner]
-  (let [elapsed (- (now) (to-long (to-date (:Start data))))
-        elapsed-minutes (int (/ elapsed 1000 60))
-        period-seconds (mod (int (/ elapsed 1000)) 60)]
+  (let [elapsed-seconds (in-seconds (interval (to-date (:Start data)) (now)))
+        elapsed-minutes (int (/ elapsed-seconds 60))
+        period-seconds (mod elapsed-seconds 60)]
     (reify
       IRender
       (render [_]

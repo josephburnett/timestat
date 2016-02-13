@@ -1,6 +1,8 @@
 (ns ui.core
   (:require [om.core :refer [IRender root]]
-            [om.dom :refer [circle svg text]]))
+            [om.dom :refer [circle svg text]]
+            [cljs-time.coerce :refer [to-date to-long to-string]]
+            [cljs-time.core :refer [now]]))
 
 (enable-console-print!)
 
@@ -8,27 +10,38 @@
 
 ;; define your app data so that it doesn't get over-written on reload
 
-(defonce app-state (atom {:text "1m"}))
+(defonce app-state (atom{:Owner "josephburnett79"
+                         :State "anon-running"
+                         :Start (to-string (now))
+                         :Stop "0001-01-01T00:00:00Z"
+                         :TimerID ""}))
 
 (defn timer-view [data owner]
-  (reify
-    IRender
-    (render [_]
-      (svg #js {:width "500"
-                :height "500"}
-           (circle #js {:r "200"
-                        :cx "250"
-                        :cy "250"
-                        :fill "green"})
-           (circle #js {:r "180"
-                        :cx "250"
-                        :cy "250"
-                        :fill "white"})
-           (text #js {:x "120"
-                      :y "300"
-                      :fill "blue"
-                      :style #js {:font-size "170px"}}
-                 (:text data))))))
+  (let [elapsed (- (now) (to-long (to-date (:Start data))))
+        elapsed-minutes (int (/ elapsed 1000 60))
+        period-seconds (mod (int (/ elapsed 1000)) 60)]
+    (reify
+      IRender
+      (render [_]
+        (svg #js {:width "500"
+                  :height "500"}
+             (circle #js {:r "200"
+                          :cx "250"
+                          :cy "250"
+                          :fill "green"})
+             (circle #js {:r "180"
+                          :cx "250"
+                          :cy "250"
+                          :fill "white"})
+             (text #js {:x "120"
+                        :y "300"
+                        :fill "blue"
+                        :style #js {:font-size "170px"}}
+                   elapsed-minutes)
+             (text #js {:x "350"
+                        :y "300"
+                        :fill "blue"}
+                   period-seconds))))))
 
 (root timer-view app-state
       {:target (. js/document (getElementById "timer"))})

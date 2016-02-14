@@ -40,7 +40,7 @@
           (transact! data :elapsed-seconds #(mod interval-seconds 60))
           (transact! data :elapsed-minutes #(mod (/ interval-seconds 60) 60))
           (transact! data :elapsed-hours #(mod (/ interval-seconds 60 60) 24))
-          (<! (timeout 30))
+          (<! (timeout 10))
           (recur))))
     IRenderState
     (render-state [_ _]
@@ -61,20 +61,19 @@
                           :cx x
                           :cy y
                           :fill "white"})
-             (when-not (= 0 elapsed-minutes)
-               (pie x y r "#d9d9d9" (* 6 10 elapsed-minutes)))
-             (pie x y (/ r 1.5) "#cccccc" (* 30 10 elapsed-hours))
-             (line #js {:x1 x
-                        :y1 y
+             (pie x y r "#d9d9d9" (* 6 10 elapsed-minutes))
+             (pie x y (/ r 1.4) "#cccccc" (* 30 10 elapsed-hours))
+             (line #js {:x1 (+ x (angleDx (* 6 elapsed-seconds) (/ r 1.4)))
+                        :y1 (+ y (angleDy (* 6 elapsed-seconds) (/ r 1.4)))
                         :x2 (+ x (angleDx (* 6 elapsed-seconds) r))
                         :y2 (+ y (angleDy (* 6 elapsed-seconds) r))
-                        :style #js {:stroke "#737373"
-                                    :stroke-width "1px"}
+                        :style #js {:stroke "#bfbfbf"
+                                    :strokeWidth "4px"}
                         :transform (str "rotate(-90," x "," y")")})
              (text #js {:x "190"
                         :y "280"
                         :fill "blue"
-                        :style #js {:font-size "90px"}}
+                        :style #js {:fontSize "90px"}}
                    (if (= 0 (int elapsed-hours))
                      (str (int elapsed-minutes) "m")
                      (str (int elapsed-hours) "h " (int elapsed-minutes) "m")))

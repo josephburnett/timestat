@@ -40,7 +40,7 @@
           (transact! data :elapsed-seconds #(mod interval-seconds 60))
           (transact! data :elapsed-minutes #(mod (/ interval-seconds 60) 60))
           (transact! data :elapsed-hours #(mod (/ interval-seconds 60 60) 24))
-          (<! (timeout 10))
+          (<! (timeout 500))
           (recur))))
     IRenderState
     (render-state [_ _]

@@ -1,8 +1,10 @@
 (ns ui.core
   (:require [om.core :refer [IRender root]]
-            [om.dom :refer [circle svg text]]
+            [om.dom :refer [circle polygon svg text]]
             [cljs-time.coerce :refer [to-date to-long to-string]]
-            [cljs-time.core :refer [now interval in-seconds]]))
+            [cljs-time.core :refer [now interval in-seconds]]
+            [clojure.string :refer [join]]
+            [goog.math :refer [angleDx angleDy]]))
 
 (enable-console-print!)
 
@@ -17,22 +19,33 @@
                          :TimerID ""}))
 
 (defn timer-view [data owner]
-  (let [elapsed-seconds (in-seconds (interval (to-date (:Start data)) (now)))
-        elapsed-minutes (int (/ elapsed-seconds 60))
-        period-seconds (mod elapsed-seconds 60)]
+  (let [r 200
+        x 250
+        y 250
+        interval-seconds (in-seconds (interval (to-date (:Start data)) (now)))
+        elapsed-minutes (mod (int (/ interval-seconds 60)) 60)
+        elapsed-hours (int (/ interval-seconds 60 60))
+        elapsed-seconds (mod interval-seconds 60)]
     (reify
       IRender
       (render [_]
         (svg #js {:width "500"
                   :height "500"}
-             (circle #js {:r "200"
-                          :cx "250"
-                          :cy "250"
+             (circle #js {:r (+ 20 r)
+                          :cx x
+                          :cy y
                           :fill "green"})
-             (circle #js {:r "180"
-                          :cx "250"
-                          :cy "250"
+             (circle #js {:r r
+                          :cx x
+                          :cy y
                           :fill "white"})
+             (when-not (= 0 elapsed-minutes)
+               (let [minute-points (map #(str (+ x (angleDx % r)) "," (+ y (angleDy % r)))
+                                        (range 0 (* 6 elapsed-minutes) 6))
+                     points-string (join " " (cons (str x "," y) minute-points))]
+                 (polygon #js {:points points-string
+                               :transform (str "rotate(-90," x "," y ")")
+                               :fill "#d9d9d9"})))
              (text #js {:x "120"
                         :y "300"
                         :fill "blue"
@@ -41,7 +54,7 @@
              (text #js {:x "350"
                         :y "300"
                         :fill "blue"}
-                   period-seconds))))))
+                   elapsed-seconds))))))
 
 (root timer-view app-state
       {:target (. js/document (getElementById "timer"))})

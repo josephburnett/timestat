@@ -1,8 +1,10 @@
 (ns ui.core
-  (:require [om.core :refer [IRender root]]
-            [om.dom :refer [circle polygon svg text]]
+  (:require-macros [cljs.core.async.macros :refer [go-loop]])
+  (:require [om.core :refer [IRenderState IInitState IWillMount root transact!]]
+            [om.dom :refer [circle line polygon svg text]]
             [cljs-time.coerce :refer [to-date to-long to-string]]
-            [cljs-time.core :refer [now interval in-seconds]]
+            [cljs-time.core :refer [now interval in-millis]]
+            [cljs.core.async :refer [timeout]]
             [clojure.string :refer [join]]
             [goog.math :refer [angleDx angleDy]]))
 
@@ -12,23 +14,43 @@
 
 ;; define your app data so that it doesn't get over-written on reload
 
-(defonce app-state (atom{:Owner "josephburnett79"
-                         :State "anon-running"
-                         :Start (to-string (now))
-                         :Stop "0001-01-01T00:00:00Z"
-                         :TimerID ""}))
+(defonce app-state (atom {:timer {:Owner "josephburnett79"
+                                  :State "anon-running"
+                                  :Start (to-string (now))
+                                  :Stop "0001-01-01T00:00:00Z"
+                                  :TimerID ""}
+                          :elapsed-seconds 0
+                          :elapsed-minutes 0
+                          :elapsed-hours 0}))
+
+(defn pie [x y r fill tenth-degrees]
+  (let [points (map #(str (+ x (angleDx (/ % 10) r)) "," (+ y (angleDy (/ % 10) r)))
+                    (range 0 tenth-degrees))
+        points-string (join " " (cons (str x "," y) points))]
+    (polygon #js {:points points-string
+                  :transform (str "rotate(-90," x "," y ")")
+                  :fill fill})))
 
 (defn timer-view [data owner]
-  (let [r 200
-        x 250
-        y 250
-        interval-seconds (in-seconds (interval (to-date (:Start data)) (now)))
-        elapsed-minutes (mod (int (/ interval-seconds 60)) 60)
-        elapsed-hours (int (/ interval-seconds 60 60))
-        elapsed-seconds (mod interval-seconds 60)]
-    (reify
-      IRender
-      (render [_]
+  (reify
+    IWillMount
+    (will-mount [_]
+      (go-loop []
+        (let [interval-seconds (/ (in-millis (interval (to-date (get-in data [:timer :Start])) (now))) 1000)]
+          (transact! data :elapsed-seconds #(mod interval-seconds 60))
+          (transact! data :elapsed-minutes #(mod (/ interval-seconds 60) 60))
+          (transact! data :elapsed-hours #(mod (/ interval-seconds 60 60) 24))
+          (<! (timeout 30))
+          (recur))))
+    IRenderState
+    (render-state [_ _]
+      (let [r 200
+            x 250
+            y 250
+                                        ;interval-seconds (in-seconds (interval (to-date (:Start data)) (now)))
+            elapsed-minutes (:elapsed-minutes data) ;(mod (int (/ interval-seconds 60)) 60)
+            elapsed-hours (:elapsed-hours data) ; (int (/ interval-seconds 60 60))
+            elapsed-seconds (:elapsed-seconds data)] ; (mod interval-seconds 60)]
         (svg #js {:width "500"
                   :height "500"}
              (circle #js {:r (+ 20 r)
@@ -40,21 +62,26 @@
                           :cy y
                           :fill "white"})
              (when-not (= 0 elapsed-minutes)
-               (let [minute-points (map #(str (+ x (angleDx % r)) "," (+ y (angleDy % r)))
-                                        (range 0 (* 6 elapsed-minutes) 6))
-                     points-string (join " " (cons (str x "," y) minute-points))]
-                 (polygon #js {:points points-string
-                               :transform (str "rotate(-90," x "," y ")")
-                               :fill "#d9d9d9"})))
-             (text #js {:x "120"
-                        :y "300"
+               (pie x y r "#d9d9d9" (* 6 10 elapsed-minutes)))
+             (pie x y (/ r 1.5) "#cccccc" (* 30 10 elapsed-hours))
+             (line #js {:x1 x
+                        :y1 y
+                        :x2 (+ x (angleDx (* 6 elapsed-seconds) r))
+                        :y2 (+ y (angleDy (* 6 elapsed-seconds) r))
+                        :style #js {:stroke "#737373"
+                                    :stroke-width "1px"}
+                        :transform (str "rotate(-90," x "," y")")})
+             (text #js {:x "190"
+                        :y "280"
                         :fill "blue"
-                        :style #js {:font-size "170px"}}
-                   elapsed-minutes)
+                        :style #js {:font-size "90px"}}
+                   (if (= 0 (int elapsed-hours))
+                     (str (int elapsed-minutes) "m")
+                     (str (int elapsed-hours) "h " (int elapsed-minutes) "m")))
              (text #js {:x "350"
-                        :y "300"
+                        :y "310"
                         :fill "blue"}
-                   elapsed-seconds))))))
+                   (int elapsed-seconds)))))))
 
 (root timer-view app-state
       {:target (. js/document (getElementById "timer"))})

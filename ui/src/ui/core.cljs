@@ -1,7 +1,7 @@
 (ns ui.core
   (:require-macros [cljs.core.async.macros :refer [go-loop]])
-  (:require [om.core :refer [IRenderState IInitState IWillMount root transact!]]
-            [om.dom :refer [circle line polygon svg text]]
+  (:require [om.core :refer [IRender IRenderState IInitState IWillMount root transact!]]
+            [om.dom :refer [circle li line polygon svg text ul]]
             [cljs-time.coerce :refer [to-date to-long to-string]]
             [cljs-time.core :refer [now interval in-millis]]
             [cljs.core.async :refer [timeout]]
@@ -19,6 +19,10 @@
                                   :Start (to-string (now))
                                   :Stop "0001-01-01T00:00:00Z"
                                   :TimerID ""}
+                          :timer-ids [{:name "Clean the kitchen"
+                                       :id "clean-the-kitchen"}
+                                      {:name "Take a bath"
+                                       :id "take-a-bath"}]
                           :elapsed-seconds 0
                           :elapsed-minutes 0
                           :elapsed-hours 0}))
@@ -40,7 +44,7 @@
           (transact! data :elapsed-seconds #(mod interval-seconds 60))
           (transact! data :elapsed-minutes #(mod (/ interval-seconds 60) 60))
           (transact! data :elapsed-hours #(mod (/ interval-seconds 60 60) 24))
-          (<! (timeout 500))
+          (<! (timeout 1000))
           (recur))))
     IRenderState
     (render-state [_ _]
@@ -52,7 +56,7 @@
             elapsed-hours (:elapsed-hours data) ; (int (/ interval-seconds 60 60))
             elapsed-seconds (:elapsed-seconds data)] ; (mod interval-seconds 60)]
         (svg #js {:width "500"
-                  :height "500"}
+                  :height "550"}
              (circle #js {:r (+ 20 r)
                           :cx x
                           :cy y
@@ -80,10 +84,26 @@
              (text #js {:x "350"
                         :y "310"
                         :fill "blue"}
-                   (int elapsed-seconds)))))))
+                   (int elapsed-seconds))
+             (text #js {:x "190"
+                        :y "550"
+                        :fill "red"
+                        :style #js {:fontSize "60px"}}
+                   "STOP"))))))
 
+(defn menu-view [data owner]
+  (reify
+    IRender
+    (render [_]
+      (ul nil
+          (map #(li nil (:name %)) (:timer-ids data))))))
+              
+ 
 (root timer-view app-state
       {:target (. js/document (getElementById "timer"))})
+
+(root menu-view app-state
+      {:target (. js/document (getElementById "menu"))})
 
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on

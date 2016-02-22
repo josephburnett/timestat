@@ -98,6 +98,38 @@
                                  :strokeWidth "4px"}
                      :transform (str "rotate(-90," x "," y")")}))))
 
+(defn timer-text [data owner]
+  (reify
+    IDisplayName
+    (display-name [_]
+      "The time text")
+    IInitState
+    (init-state [_]
+      {:elapsed-seconds 0
+       :elapsed-minutes 0
+       :elapsed-hours 0})
+    IWillMount
+    (will-mount [_]
+      (go-loop []
+        (let [start (om/get-state owner :start)
+              interval-seconds (/ (time/in-millis (time/interval start (time/now))) 1000)]
+          (om/update-state! owner :elapsed-minutes #(mod (/ interval-seconds 60) 60))
+          (om/update-state! owner :elapsed-hours #(mod (/ interval-seconds 60 60) 24)))
+        (<! (async/timeout 1000))
+        (recur)))
+    IRenderState
+    (render-state [_ {x :x y :y sec :elapsed-seconds min :elapsed-minutes hr :elapsed-hours}]
+      (let [min-only (= 0 (int hr))]
+        (dom/text #js {:x (if min-only
+                            (- x 50)
+                            (- x 130))
+                       :y (+ y 25)
+                       :fill "blue"
+                       :style #js {:fontSize "90px"}}
+                  (if min-only 
+                    (str (int min) "m")
+                    (str (int hr) "h " (int min) "m")))))))
+
 (defn timer-view [data owner]
   (reify
     IDisplayName
@@ -120,7 +152,8 @@
                  (circle x y r "white")
                  (om/build timer-minutes nil {:init-state timer-dim})
                  (om/build timer-hours nil {:init-state timer-dim})
-                 (om/build timer-seconds nil {:init-state timer-dim}))))))
+                 (om/build timer-seconds nil {:init-state timer-dim})
+                 (om/build timer-text nil {:init-state timer-dim}))))))
 
 (defn menu-view [data owner]
   (reify

@@ -22,7 +22,13 @@
                           :timer-ids [{:name "Clean the kitchen"
                                        :id "clean-the-kitchen"}
                                       {:name "Take a bath"
-                                       :id "take-a-bath"}]}))
+                                       :id "take-a-bath"}]
+                          :dimensions {
+                                       :width 500
+                                       :height 500
+                                       :x 250
+                                       :y 250
+                                       :r 200}}))
 
 (defn pie [x y r fill tenth-degrees]
   (let [points (map #(str (+ x (math/angleDx (/ % 10) r)) "," (+ y (math/angleDy (/ % 10) r)))
@@ -46,7 +52,7 @@
     IWillMount
     (will-mount [_]
       (go-loop []
-        (let [start (om/get-state owner :start)
+        (let [start (time-coerce/to-date (get-in data [:timer :Start]))
               interval-seconds (/ (time/in-millis (time/interval start (time/now))) 1000)]
           (om/update-state! owner :elapsed-minutes #(mod (/ interval-seconds 60) 60)))
         (<! (async/timeout 1000))
@@ -55,15 +61,19 @@
     (init-state [_]
       {:elapsed-minutes 0})
     IRenderState
-    (render-state [_ {x :x y :y r :r min :elapsed-minutes init :initialized}]
-      (pie x y r "#d9d9d9" (* 6 10 min)))))
+    (render-state [owner {min :elapsed-minutes}]
+      (let [{x :x y :y r :r} (:dimensions data)]
+        (pie x y r "#d9d9d9" (* 6 10 min))))))
 
 (defn timer-hours [data owner]
   (reify
+    IDisplayName
+    (display-name [_]
+      "Hours on the timer")
     IWillMount
     (will-mount [_]
       (go-loop []
-        (let [start (om/get-state owner :start)
+        (let [start (time-coerce/to-date (get-in data [:timer :Start]))
               interval-seconds (/ (time/in-millis (time/interval start (time/now))) 1000)]
           (om/update-state! owner :elapsed-hours #(mod (/ interval-seconds 60 60) 24)))
         (<! (async/timeout 10000))
@@ -72,11 +82,15 @@
     (init-state [_]
       {:elapsed-hours 0})
     IRenderState
-    (render-state [_ {x :x y :y r :r hr :elapsed-hours}]
-      (pie x y (/ r 1.4) "#cccccc" (* 30 10 hr)))))
+    (render-state [owner {hr :elapsed-hours}]
+      (let [{x :x y :y r :r} (:dimensions data)]
+        (pie x y (/ r 1.4) "#cccccc" (* 30 10 hr))))))
 
 (defn timer-seconds [data owner]
   (reify
+    IDisplayName
+    (display-name [_]
+      "Seconds on the timer")
     IWillMount
     (will-mount [_]
       (go-loop []
@@ -87,16 +101,18 @@
         (recur)))
     IInitState
     (init-state [_]
-      {:elapsed-seconds 0})
+      {:elapsed-seconds 0
+       :start (time-coerce/to-date (get-in data [:timer :Start]))})
     IRenderState
-    (render-state [_ {x :x y :y r :r sec :elapsed-seconds}]
-      (dom/line #js {:x1 (+ x (math/angleDx (* 6 sec) (/ r 1.4)))
-                     :y1 (+ y (math/angleDy (* 6 sec) (/ r 1.4)))
-                     :x2 (+ x (math/angleDx (* 6 sec) r))
-                     :y2 (+ y (math/angleDy (* 6 sec) r))
-                     :style #js {:stroke "#bfbfbf"
-                                 :strokeWidth "4px"}
-                     :transform (str "rotate(-90," x "," y")")}))))
+    (render-state [owner {sec :elapsed-seconds}]
+      (let [{x :x y :y r :r} (:dimensions data)]
+        (dom/line #js {:x1 (+ x (math/angleDx (* 6 sec) (/ r 1.4)))
+                       :y1 (+ y (math/angleDy (* 6 sec) (/ r 1.4)))
+                       :x2 (+ x (math/angleDx (* 6 sec) r))
+                       :y2 (+ y (math/angleDy (* 6 sec) r))
+                       :style #js {:stroke "#bfbfbf"
+                                   :strokeWidth "4px"}
+                       :transform (str "rotate(-90," x "," y")")})))))
 
 (defn timer-text [data owner]
   (reify
@@ -111,15 +127,16 @@
     IWillMount
     (will-mount [_]
       (go-loop []
-        (let [start (om/get-state owner :start)
+        (let [start (time-coerce/to-date (get-in data [:timer :Start]))
               interval-seconds (/ (time/in-millis (time/interval start (time/now))) 1000)]
           (om/update-state! owner :elapsed-minutes #(mod (/ interval-seconds 60) 60))
           (om/update-state! owner :elapsed-hours #(mod (/ interval-seconds 60 60) 24)))
         (<! (async/timeout 1000))
         (recur)))
     IRenderState
-    (render-state [_ {x :x y :y sec :elapsed-seconds min :elapsed-minutes hr :elapsed-hours}]
-      (let [min-only (= 0 (int hr))]
+    (render-state [_ {min :elapsed-minutes hr :elapsed-hours}]
+      (let [{x :x y :y} (:dimensions data)
+            min-only (= 0 (int hr))]
         (dom/text #js {:x (if min-only
                             (- x 50)
                             (- x 130))
@@ -135,25 +152,18 @@
     IDisplayName
     (display-name [_]
       "The timer")
-    IInitState
-    (init-state [_]
-      {:width 500
-       :height 500
-       :radius 200
-       :x 250
-       :y 250})
-    IRenderState
-    (render-state [_ {w :width h :height x :x y :y r :radius}]
-      (let [start-date (time-coerce/to-date (get-in data [:timer :Start]))
-            timer-dim {:x x :y y :r r :start start-date}]
+    IRender
+    (render [_]
+      (let [cursors (select-keys data [:dimensions :timer])
+            {w :width h :height x :x y :y r :r} (:dimensions cursors)]
         (dom/svg #js {:width w
                       :height h}
                  (circle x y (+ r 20) "green")
                  (circle x y r "white")
-                 (om/build timer-minutes nil {:init-state timer-dim})
-                 (om/build timer-hours nil {:init-state timer-dim})
-                 (om/build timer-seconds nil {:init-state timer-dim})
-                 (om/build timer-text nil {:init-state timer-dim}))))))
+                 (om/build timer-minutes cursors)
+                 (om/build timer-hours cursors)
+                 (om/build timer-seconds cursors)
+                 (om/build timer-text cursors))))))
 
 (defn menu-view [data owner]
   (reify

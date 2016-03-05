@@ -6,7 +6,8 @@
             [cljs-time.core :as time]
             [cljs.core.async :as async]
             [clojure.string :as string]
-            [goog.math :as math]))
+            [goog.math :as math]
+            [ajax.core :refer [GET]]))
 
 (enable-console-print!)
 
@@ -22,6 +23,12 @@
                                        :x 250
                                        :y 250
                                        :r 200}}))
+
+(defn load-timer-async []
+  (GET "/timer" {:handler #(let [cursor (om/root-cursor app-state)]
+                             (om/update! cursor :timer %))
+                 :keywords? true
+                 :response-format :json}))
 
 (defn pie [x y r fill tenth-degrees]
   (let [points (map #(str (+ x (math/angleDx (/ % 10) r)) "," (+ y (math/angleDy (/ % 10) r)))
@@ -45,11 +52,13 @@
     IWillMount
     (will-mount [_]
       (go-loop []
-        (let [start (time-coerce/to-date (get-in data [:timer :Start]))
-              interval-seconds (/ (time/in-millis (time/interval start (time/now))) 1000)]
-          (om/update-state! owner :elapsed-minutes #(mod (/ interval-seconds 60) 60)))
-        (<! (async/timeout 1000))
-        (recur)))
+        (let [data (om/root-cursor app-state)]
+          (when (contains? (:timer data) :Start)
+            (let [start (time-coerce/to-date (get-in data [:timer :Start]))
+                  interval-seconds (/ (time/in-millis (time/interval start (time/now))) 1000)]
+              (om/update-state! owner :elapsed-minutes #(mod (/ interval-seconds 60) 60))))
+          (<! (async/timeout 1000))
+          (recur))))
     IInitState
     (init-state [_]
       {:elapsed-minutes 0})
@@ -66,11 +75,13 @@
     IWillMount
     (will-mount [_]
       (go-loop []
-        (let [start (time-coerce/to-date (get-in data [:timer :Start]))
-              interval-seconds (/ (time/in-millis (time/interval start (time/now))) 1000)]
-          (om/update-state! owner :elapsed-hours #(mod (/ interval-seconds 60 60) 24)))
-        (<! (async/timeout 10000))
-        (recur)))
+        (let [data (om/root-cursor app-state)]
+          (when (contains? (:timer data) :Start)
+            (let [start (time-coerce/to-date (get-in data [:timer :Start]))
+                  interval-seconds (/ (time/in-millis (time/interval start (time/now))) 1000)]
+              (om/update-state! owner :elapsed-hours #(mod (/ interval-seconds 60 60) 24))))
+          (<! (async/timeout 10000))
+          (recur))))
     IInitState
     (init-state [_]
       {:elapsed-hours 0})
@@ -87,15 +98,18 @@
     IWillMount
     (will-mount [_]
       (go-loop []
-        (let [start (om/get-state owner :start)
-              interval-seconds (/ (time/in-millis (time/interval start (time/now))) 1000)]
-          (om/update-state! owner :elapsed-seconds #(mod interval-seconds 60)))
-        (<! (async/timeout 50))
-        (recur)))
+        (let [data (om/root-cursor app-state)]
+          (when (contains? (:timer data) :Start)
+            (when-not (contains? (om/get-state owner) :start)
+              (om/set-state! owner :start (time-coerce/to-date (get-in data [:timer :Start]))))
+            (let [start (om/get-state owner :start)
+                  interval-seconds (/ (time/in-millis (time/interval start (time/now))) 1000)]
+              (om/update-state! owner :elapsed-seconds #(mod interval-seconds 60))))
+          (<! (async/timeout 50))
+          (recur))))
     IInitState
     (init-state [_]
-      {:elapsed-seconds 0
-       :start (time-coerce/to-date (get-in data [:timer :Start]))})
+      {:elapsed-seconds 0})
     IRenderState
     (render-state [owner {sec :elapsed-seconds}]
       (let [{x :x y :y r :r} (:dimensions data)]
@@ -120,12 +134,14 @@
     IWillMount
     (will-mount [_]
       (go-loop []
-        (let [start (time-coerce/to-date (get-in data [:timer :Start]))
-              interval-seconds (/ (time/in-millis (time/interval start (time/now))) 1000)]
-          (om/update-state! owner :elapsed-minutes #(mod (/ interval-seconds 60) 60))
-          (om/update-state! owner :elapsed-hours #(mod (/ interval-seconds 60 60) 24)))
-        (<! (async/timeout 1000))
-        (recur)))
+        (let [data (om/root-cursor app-state)]
+          (when (contains? (:timer data) :Start)
+            (let [start (time-coerce/to-date (get-in data [:timer :Start]))
+                  interval-seconds (/ (time/in-millis (time/interval start (time/now))) 1000)]
+              (om/update-state! owner :elapsed-minutes #(mod (/ interval-seconds 60) 60))
+              (om/update-state! owner :elapsed-hours #(mod (/ interval-seconds 60 60) 24))))
+          (<! (async/timeout 1000))
+          (recur))))
     IRenderState
     (render-state [_ {min :elapsed-minutes hr :elapsed-hours}]
       (let [{x :x y :y} (:dimensions data)
@@ -170,6 +186,8 @@
 
 (om/root menu-view app-state
          {:target (. js/document (getElementById "menu"))})
+
+(load-timer-async)
 
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on

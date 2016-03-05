@@ -12,7 +12,8 @@
                   :exclusions [org.clojure/tools.reader]]
                  [sablono "0.3.6"]
                  [org.omcljs/om "0.9.0"]
-                 [com.andrewmcveigh/cljs-time "0.4.0"]]
+                 [com.andrewmcveigh/cljs-time "0.4.0"]
+                 [cljs-ajax "0.5.3"]]
   
   :plugins [[lein-figwheel "0.5.0-6"]
             [lein-cljsbuild "1.1.2" :exclusions [[org.clojure/clojure]]]]

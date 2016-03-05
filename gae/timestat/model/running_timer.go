@@ -3,7 +3,7 @@ package model
 import (
 	"encoding/json"
 	"fmt"
-	"io"
+	"net/http"
 	"time"
 )
 
@@ -28,7 +28,8 @@ const (
 	NamedStopped       = "named-stopped" // ready to be reset
 )
 
-func (t *RunningTimer) Print(w io.Writer) {
+func (t *RunningTimer) Print(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
 	bytes, _ := json.Marshal(t)
 	fmt.Fprint(w, string(bytes))
 }

@@ -7,6 +7,10 @@ handlers:
 - url: /task/reset
   script: _go_app
   login: admin
+- url: /css
+  static_dir: ../ui/resources/public/css
+- url: /js
+  static_dir: ../ui/resources/public/js
 - url: /.*
   script: _go_app
   login: required

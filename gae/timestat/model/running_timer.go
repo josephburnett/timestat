@@ -1,6 +1,9 @@
 package model
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
 	"time"
 )
 
@@ -24,3 +27,8 @@ const (
 	NamedRunning       = "named-running" // running and associated with a timer id
 	NamedStopped       = "named-stopped" // ready to be reset
 )
+
+func (t *RunningTimer) Print(w io.Writer) {
+	bytes, _ := json.Marshal(t)
+	fmt.Fprint(w, string(bytes))
+}

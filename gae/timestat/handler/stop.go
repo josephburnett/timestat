@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 	"timestat/datastore"
 	m "timestat/model"
@@ -21,11 +20,11 @@ func Stop(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if timer == nil {
-		fmt.Fprint(w, inHTMLBody(messageHTML("There is not a timer running.")+menu))
+		printEmptyTimer(w)
 		return
 	}
 	if timer.State == m.AnonStopped || timer.State == m.NamedStopped {
-		fmt.Fprint(w, inHTMLBody(messageHTML("Timer is already stopped.")+menu))
+		timer.Print(w)
 		return
 	}
 	if timer.TimerID == "" {
@@ -37,5 +36,5 @@ func Stop(w http.ResponseWriter, r *http.Request) {
 	if internalError(w, err) {
 		return
 	}
-	fmt.Fprint(w, inHTMLBody(messageHTML("Timer successfully stopped.")+menu))
+	timer.Print(w)
 }

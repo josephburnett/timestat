@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 	"timestat/datastore"
 	m "timestat/model"
@@ -50,5 +49,5 @@ func Identify(w http.ResponseWriter, r *http.Request) {
 	if internalError(w, err) {
 		return
 	}
-	fmt.Fprint(w, inHTMLBody(messageHTML("Time successfully identified as: "+timer.ID)+menu))
+	running.Print(w)
 }

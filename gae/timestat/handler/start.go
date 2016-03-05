@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 	"timestat/datastore"
 
@@ -18,12 +17,12 @@ func Start(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if timer != nil {
-		fmt.Fprint(w, inHTMLBody(messageHTML("There is already a timer running.")+menu))
+		timer.Print(w)
 		return
 	}
 	timer, err = datastore.NewRunningTimer(ctx, u.String())
 	if internalError(w, err) {
 		return
 	}
-	fmt.Fprint(w, inHTMLBody(messageHTML("Successfully started a timer.")+menu))
+	timer.Print(w)
 }

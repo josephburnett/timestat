@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 	"timestat/datastore"
 
@@ -18,12 +17,12 @@ func Cancel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if timer == nil {
-		fmt.Fprint(w, inHTMLBody(messageHTML("There is not a timer running.")+menu))
+		printEmptyTimer(w)
 		return
 	}
 	err = datastore.DeleteRunningTimer(ctx, timer)
 	if internalError(w, err) {
 		return
 	}
-	fmt.Fprint(w, inHTMLBody(messageHTML("Timer successfully cancelled.")+menu))
+	printEmptyTimer(w)
 }

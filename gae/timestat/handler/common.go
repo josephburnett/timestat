@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"timestat/datastore"
 
@@ -17,6 +18,10 @@ func internalError(w http.ResponseWriter, err error) bool {
 
 func userError(w http.ResponseWriter, err string) {
 	http.Error(w, err, http.StatusBadRequest)
+}
+
+func printEmptyTimer(w http.ResponseWriter) {
+	fmt.Fprint(w, "{}")
 }
 
 // TODO: create a templating component for rendering page views.

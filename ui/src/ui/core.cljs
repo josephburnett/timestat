@@ -14,15 +14,8 @@
 
 ;; define your app data so that it doesn't get over-written on reload
 
-(defonce app-state (atom {:timer {:Owner "josephburnett79"
-                                  :State "anon-running"
-                                  :Start (time-coerce/to-string (time/now))
-                                  :Stop "0001-01-01T00:00:00Z"
-                                  :TimerID ""}
-                          :timer-ids [{:name "Clean the kitchen"
-                                       :id "clean-the-kitchen"}
-                                      {:name "Take a bath"
-                                       :id "take-a-bath"}]
+(defonce app-state (atom {:timer {}
+                          :timer-ids []
                           :dimensions {
                                        :width 500
                                        :height 500

@@ -43,118 +43,80 @@
                    :cx x
                    :cy y
                    :fill fill}))
-  
-(defn timer-minutes [data owner]
-  (reify
-    IDisplayName
-    (display-name [_]
-      "Minutes on the timer")
-    IWillMount
-    (will-mount [_]
-      (go-loop []
-        (let [data (om/root-cursor app-state)]
-          (when (contains? (:timer data) :Start)
-            (let [start (time-coerce/to-date (get-in data [:timer :Start]))
-                  interval-seconds (/ (time/in-millis (time/interval start (time/now))) 1000)]
-              (om/update-state! owner :elapsed-minutes #(mod (/ interval-seconds 60) 60))))
-          (<! (async/timeout 1000))
-          (recur))))
-    IInitState
-    (init-state [_]
-      {:elapsed-minutes 0})
-    IRenderState
-    (render-state [owner {min :elapsed-minutes}]
-      (let [{x :x y :y r :r} (:dimensions data)]
-        (pie x y r "#d9d9d9" (* 6 10 min))))))
 
-(defn timer-hours [data owner]
-  (reify
-    IDisplayName
-    (display-name [_]
-      "Hours on the timer")
-    IWillMount
-    (will-mount [_]
-      (go-loop []
-        (let [data (om/root-cursor app-state)]
-          (when (contains? (:timer data) :Start)
-            (let [start (time-coerce/to-date (get-in data [:timer :Start]))
-                  interval-seconds (/ (time/in-millis (time/interval start (time/now))) 1000)]
-              (om/update-state! owner :elapsed-hours #(mod (/ interval-seconds 60 60) 24))))
-          (<! (async/timeout 10000))
-          (recur))))
-    IInitState
-    (init-state [_]
-      {:elapsed-hours 0})
-    IRenderState
-    (render-state [owner {hr :elapsed-hours}]
-      (let [{x :x y :y r :r} (:dimensions data)]
-        (pie x y (/ r 1.4) "#cccccc" (* 30 10 hr))))))
+(defn self-refreshing-component [& {:keys [name interval-millis render-fn]}]
+  (fn [data owner]
+    (reify
+      IDisplayName
+      (display-name [_]
+        name)
+      IWillMount
+      (will-mount [_]
+        (go-loop []
+          (let [data (om/root-cursor app-state)]
+            (when (contains? (:timer data) :Start)
+              (let [start (time-coerce/to-date (get-in data [:timer :Start]))
+                    interval-seconds (/ (time/in-millis (time/interval start (time/now))) 1000)]
+                (om/update-state! owner :elapsed-seconds #(mod interval-seconds 60))
+                (om/update-state! owner :elapsed-minutes #(mod (/ interval-seconds 60) 60))
+                (om/update-state! owner :elapsed-hours #(mod (/ interval-seconds 60 60) 24))))
+            (<! (async/timeout interval-millis))
+            (recur))))
+      IInitState
+      (init-state [_]
+        {:elapsed-seconds 0
+         :elapsed-minutes 0
+         :elapsed-hours 0})
+      IRenderState
+      (render-state [owner state]
+        (render-fn data state)))))
 
-(defn timer-seconds [data owner]
-  (reify
-    IDisplayName
-    (display-name [_]
-      "Seconds on the timer")
-    IWillMount
-    (will-mount [_]
-      (go-loop []
-        (let [data (om/root-cursor app-state)]
-          (when (contains? (:timer data) :Start)
-            (when-not (contains? (om/get-state owner) :start)
-              (om/set-state! owner :start (time-coerce/to-date (get-in data [:timer :Start]))))
-            (let [start (om/get-state owner :start)
-                  interval-seconds (/ (time/in-millis (time/interval start (time/now))) 1000)]
-              (om/update-state! owner :elapsed-seconds #(mod interval-seconds 60))))
-          (<! (async/timeout 50))
-          (recur))))
-    IInitState
-    (init-state [_]
-      {:elapsed-seconds 0})
-    IRenderState
-    (render-state [owner {sec :elapsed-seconds}]
-      (let [{x :x y :y r :r} (:dimensions data)]
-        (dom/line #js {:x1 (+ x (math/angleDx (* 6 sec) (/ r 1.4)))
-                       :y1 (+ y (math/angleDy (* 6 sec) (/ r 1.4)))
-                       :x2 (+ x (math/angleDx (* 6 sec) r))
-                       :y2 (+ y (math/angleDy (* 6 sec) r))
-                       :style #js {:stroke "#bfbfbf"
-                                   :strokeWidth "4px"}
-                       :transform (str "rotate(-90," x "," y")")})))))
+(def timer-minutes
+  (self-refreshing-component
+   :name "Minutes on the timer"
+   :interval-millis 1000
+   :render-fn (fn [data {min :elapsed-minutes}]
+                (let [{x :x y :y r :r} (:dimensions data)]
+                  (pie x y r "#d9d9d9" (* 6 10 min))))))
 
-(defn timer-text [data owner]
-  (reify
-    IDisplayName
-    (display-name [_]
-      "The time text")
-    IInitState
-    (init-state [_]
-      {:elapsed-seconds 0
-       :elapsed-minutes 0
-       :elapsed-hours 0})
-    IWillMount
-    (will-mount [_]
-      (go-loop []
-        (let [data (om/root-cursor app-state)]
-          (when (contains? (:timer data) :Start)
-            (let [start (time-coerce/to-date (get-in data [:timer :Start]))
-                  interval-seconds (/ (time/in-millis (time/interval start (time/now))) 1000)]
-              (om/update-state! owner :elapsed-minutes #(mod (/ interval-seconds 60) 60))
-              (om/update-state! owner :elapsed-hours #(mod (/ interval-seconds 60 60) 24))))
-          (<! (async/timeout 1000))
-          (recur))))
-    IRenderState
-    (render-state [_ {min :elapsed-minutes hr :elapsed-hours}]
-      (let [{x :x y :y} (:dimensions data)
-            min-only (= 0 (int hr))]
-        (dom/text #js {:x (if min-only
-                            (- x 50)
-                            (- x 130))
-                       :y (+ y 25)
-                       :fill "blue"
-                       :style #js {:fontSize "90px"}}
-                  (if min-only 
-                    (str (int min) "m")
-                    (str (int hr) "h " (int min) "m")))))))
+(def timer-hours
+  (self-refreshing-component
+   :name "Hours on the timer"
+   :interval-millis 10000
+   :render-fn (fn [data {hr :elapsed-hours}]
+                (let [{x :x y :y r :r} (:dimensions data)]
+                  (pie x y (/ r 1.4) "#cccccc" (* 30 10 hr))))))
+
+(def timer-seconds
+  (self-refreshing-component
+   :name "Seconds on the timer"
+   :interval-millis 50
+   :render-fn (fn [data {sec :elapsed-seconds}]
+                (let [{x :x y :y r :r} (:dimensions data)]
+                  (dom/line #js {:x1 (+ x (math/angleDx (* 6 sec) (/ r 1.4)))
+                                 :y1 (+ y (math/angleDy (* 6 sec) (/ r 1.4)))
+                                 :x2 (+ x (math/angleDx (* 6 sec) r))
+                                 :y2 (+ y (math/angleDy (* 6 sec) r))
+                                 :style #js {:stroke "#bfbfbf"
+                                             :strokeWidth "4px"}
+                                 :transform (str "rotate(-90," x "," y")")})))))
+
+(def timer-text
+  (self-refreshing-component
+   :name "Timer text"
+   :interval-millis 1000
+   :render-fn (fn [data {min :elapsed-minutes hr :elapsed-hours}]
+                (let [{x :x y :y} (:dimensions data)
+                      min-only (= 0 (int hr))]
+                  (dom/text #js {:x (if min-only
+                                      (- x 50)
+                                      (- x 130))
+                                 :y (+ y 25)
+                                 :fill "blue"
+                                 :style #js {:fontSize "90px"}}
+                            (if min-only
+                              (str (int min) "m")
+                              (str (int hr) "h " (int min) "m")))))))
 
 (defn timer-view [data owner]
   (reify
